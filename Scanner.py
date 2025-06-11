@@ -1,19 +1,26 @@
 import socket
-from datetime import datetime
+import concurrent.futures
 
-def port_scan(ip):
-    open_ports = []
-    for port in range(70, 100):  # Hızlı tarama için
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(0.5)
-        result = sock.connect_ex((ip, port))
-        if result == 0:
-            open_ports.append(port)
-        sock.close()
-    return open_ports
+def scan_port(ip, port):
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(1)
+            result = s.connect_ex((ip, port))
+            if result == 0:
+                print(f"[+] {ip}:{port} - AÇIK")
+            s.close()
+    except Exception as e:
+        print(f"[-] Hata: {e}")
 
 if __name__ == "__main__":
-    target = "192.168.1.1"  # Örnek hedef
-    print(f"[*] {target} taraması başlatıldı: {datetime.now()}")
-    ports = port_scan(target)
-    print(f"[+] Açık portlar: {ports if ports else 'Bulunamadı'}")
+    target = input("Hedef IP: ")
+    port_range = input("Port Aralığı (örn: 70-100): ").split('-')
+    
+    start_port = int(port_range[0])
+    end_port = int(port_range[1])
+    
+    print(f"[*] {target} taraması başlatıldı...")
+    
+    with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executor:
+        for port in range(start_port, end_port+1):
+            executor.submit(scan_port, target, port)
